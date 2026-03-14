@@ -1,0 +1,90 @@
+{
+  "entities": {
+    "Farmer": {
+      "title": "Farmer",
+      "description": "Details of a registered farmer",
+      "type": "object",
+      "properties": {
+        "farmerName": { "type": "string", "description": "Full name of the farmer" },
+        "mobileNumber": { "type": "string", "description": "Unique mobile number" },
+        "email": { "type": "string", "description": "Email address (optional)" },
+        "area": { "type": "string", "description": "Village/District/Area" },
+        "landSize": { "type": "number", "description": "Land size in acres" },
+        "preferredLanguage": { "type": "string", "description": "Selected language for the UI" },
+        "signupDate": { "type": "string", "format": "date-time", "description": "Date of registration" }
+      },
+      "required": ["farmerName", "mobileNumber", "area", "landSize", "preferredLanguage", "signupDate"]
+    },
+    "FarmerLog": {
+      "title": "Farmer Log",
+      "description": "Activity log for a farmer",
+      "type": "object",
+      "properties": {
+        "farmerId": { "type": "string", "description": "Reference to the farmer UID" },
+        "activityType": { "type": "string", "description": "Type of activity (e.g., Login, Scan)" },
+        "activityDetails": { "type": "string", "description": "Details of the activity" },
+        "timestamp": { "type": "string", "format": "date-time", "description": "When the activity occurred" }
+      },
+      "required": ["farmerId", "activityType", "activityDetails", "timestamp"]
+    },
+    "CropRecommendation": {
+      "title": "Crop Recommendation",
+      "description": "Recommended crops based on conditions",
+      "type": "object",
+      "properties": {
+        "farmerId": { "type": "string", "description": "Reference to the farmer UID" },
+        "location": { "type": "string" },
+        "soilType": { "type": "string" },
+        "season": { "type": "string" },
+        "recommendedCrops": { "type": "array", "items": { "type": "string" } },
+        "createdDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["farmerId", "location", "soilType", "season", "recommendedCrops", "createdDate"]
+    },
+    "PlantDiseaseRecord": {
+      "title": "Plant Disease Record",
+      "description": "Record of a plant disease scan",
+      "type": "object",
+      "properties": {
+        "farmerId": { "type": "string" },
+        "plantName": { "type": "string" },
+        "detectedDisease": { "type": "string" },
+        "recommendedTreatment": { "type": "string" },
+        "scanDate": { "type": "string", "format": "date-time" }
+      }
+    },
+    "FarmingTechnology": {
+      "title": "Farming Technology",
+      "description": "Information about modern farming technologies",
+      "type": "object",
+      "properties": {
+        "technologyName": { "type": "string" },
+        "description": { "type": "string" },
+        "benefits": { "type": "string" },
+        "usageMethod": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/farmers/{farmerId}": {
+      "schema": "Farmer",
+      "description": "Collection of farmer profiles"
+    },
+    "/logs/{logId}": {
+      "schema": "FarmerLog",
+      "description": "Collection of activity logs"
+    },
+    "/recommendations/{recId}": {
+      "schema": "CropRecommendation",
+      "description": "Collection of crop recommendations"
+    },
+    "/disease_records/{recordId}": {
+      "schema": "PlantDiseaseRecord",
+      "description": "Collection of disease scan records"
+    },
+    "/technologies/{techId}": {
+      "schema": "FarmingTechnology",
+      "description": "Collection of farming technology info"
+    }
+  }
+}

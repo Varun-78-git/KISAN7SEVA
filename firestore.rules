@@ -1,0 +1,186 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: farmers
+// Document ID: {uid}
+// Fields:
+//   - farmerName: string (required)
+//   - mobileNumber: string (required, unique)
+//   - email: string (optional)
+//   - area: string (required)
+//   - landSize: number (required)
+//   - preferredLanguage: string (required)
+//   - signupDate: timestamp (required)
+//
+// Collection: logs
+// Document ID: {logId}
+// Fields:
+//   - farmerId: string (required, matches auth.uid)
+//   - activityType: string (required)
+//   - activityDetails: string (required)
+//   - timestamp: timestamp (required)
+//
+// Collection: recommendations
+// Document ID: {recId}
+// Fields:
+//   - location: string
+//   - soilType: string
+//   - season: string
+//   - recommendedCrops: list
+//   - createdDate: timestamp
+//
+// Collection: disease_records
+// Document ID: {recordId}
+// Fields:
+//   - farmerId: string (required, matches auth.uid)
+//   - plantName: string
+//   - detectedDisease: string
+//   - recommendedTreatment: string
+//   - scanDate: timestamp
+//
+// Collection: technologies
+// Document ID: {techId}
+// Fields:
+//   - technologyName: string
+//   - description: string
+//   - benefits: string
+//   - usageMethod: string
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.farmerId;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidDateString(dateStr) {
+      return dateStr is string &&
+        dateStr.matches("^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}.*Z?$");
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        request.auth.token.email == "varunbujjappa3@gmail.com" && 
+        request.auth.token.email_verified == true;
+    }
+
+    function isValidFarmer(data) {
+      return hasRequiredFields(['farmerName', 'mobileNumber', 'area', 'landSize', 'preferredLanguage', 'signupDate']) &&
+             hasOnlyAllowedFields(['uid', 'farmerName', 'mobileNumber', 'email', 'area', 'landSize', 'preferredLanguage', 'signupDate']) &&
+             data.farmerName is string && data.farmerName.size() > 0 && data.farmerName.size() < 100 &&
+             data.mobileNumber is string && data.mobileNumber.size() >= 3 && data.mobileNumber.size() <= 15 &&
+             data.area is string && data.area.size() > 0 && data.area.size() < 200 &&
+             data.landSize is number && data.landSize >= 0 &&
+             data.preferredLanguage is string &&
+             (data.signupDate is timestamp || isValidDateString(data.signupDate));
+    }
+
+    function isValidLog(data) {
+      return hasRequiredFields(['farmerId', 'activityType', 'activityDetails', 'timestamp']) &&
+             hasOnlyAllowedFields(['farmerId', 'activityType', 'activityDetails', 'timestamp']) &&
+             data.farmerId == request.auth.uid &&
+             data.activityType is string && data.activityType.size() > 0 && data.activityType.size() < 50 &&
+             data.activityDetails is string && data.activityDetails.size() < 1000 &&
+             data.timestamp is timestamp;
+    }
+
+    function isValidDiseaseRecord(data) {
+      return hasRequiredFields(['farmerId', 'plantName', 'detectedDisease', 'recommendedTreatment', 'scanDate']) &&
+             hasOnlyAllowedFields(['farmerId', 'plantName', 'detectedDisease', 'recommendedTreatment', 'scanDate']) &&
+             data.farmerId == request.auth.uid &&
+             data.plantName is string && data.plantName.size() > 0 && data.plantName.size() < 100 &&
+             data.detectedDisease is string && data.detectedDisease.size() > 0 && data.detectedDisease.size() < 200 &&
+             data.recommendedTreatment is string && data.recommendedTreatment.size() < 2000 &&
+             data.scanDate is timestamp;
+    }
+
+    function isValidRecommendation(data) {
+      return hasRequiredFields(['farmerId', 'location', 'soilType', 'season', 'recommendedCrops', 'createdDate']) &&
+             hasOnlyAllowedFields(['farmerId', 'location', 'soilType', 'season', 'recommendedCrops', 'createdDate']) &&
+             data.farmerId == request.auth.uid &&
+             data.location is string && data.location.size() > 0 &&
+             data.soilType is string &&
+             data.season is string &&
+             data.recommendedCrops is list && data.recommendedCrops.size() <= 20 &&
+             data.createdDate is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /farmers/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidFarmer(request.resource.data);
+      allow update: if isOwner(userId) && isValidFarmer(request.resource.data);
+    }
+
+    match /logs/{logId} {
+      allow read: if isDocOwner();
+      allow create: if isValidLog(request.resource.data);
+      allow update: if isDocOwner() && isValidLog(request.resource.data);
+    }
+
+    match /recommendations/{recId} {
+      allow read: if isDocOwner();
+      allow create: if isValidRecommendation(request.resource.data);
+      allow update: if isDocOwner() && isValidRecommendation(request.resource.data);
+    }
+
+    match /disease_records/{recordId} {
+      allow read: if isDocOwner();
+      allow create: if isValidDiseaseRecord(request.resource.data);
+      allow update: if isDocOwner() && isValidDiseaseRecord(request.resource.data);
+    }
+
+    match /technologies/{techId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /test/connection {
+      allow read: if true;
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

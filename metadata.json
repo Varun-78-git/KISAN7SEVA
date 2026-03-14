@@ -1,0 +1,8 @@
+{
+  "name": "Remix: Remix: Remix: KISAN SEVA – Smart Crop Advisory System",
+  "description": "A farmer-friendly smart advisory platform providing soil info, weather updates, crop recommendations, AI-powered disease detection, high-profit crop analysis, pesticide guides, seed calculators, and water management.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ]
+}
