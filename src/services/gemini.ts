@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { DiseaseRecord, SoilInfo, WeatherInfo, LocationInfo, Language, CropProfitData, PesticideInfo, IrrigationSchedule, GovernmentScheme, AgriculturalLoan } from "../types";
 
 const getAi = () => {
-  const apiKey = (process.env as any).API_KEY || process.env.GEMINI_API_KEY || "";
+  const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || (process.env as any).API_KEY || process.env.GEMINI_API_KEY || "";
   return new GoogleGenAI({ apiKey });
 };
 
@@ -135,7 +135,6 @@ export async function getSoilInfo(location: LocationInfo, language: Language): P
 }
 
 export async function generateFarmingBackground(): Promise<string> {
-  // Use a high-quality static image by default to preserve AI quota for critical features like disease detection
   const staticImages = [
     "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&q=80&w=1920",
     "https://images.unsplash.com/photo-1523348837708-15d4a09cfac2?auto=format&fit=crop&q=80&w=1920",
@@ -143,41 +142,7 @@ export async function generateFarmingBackground(): Promise<string> {
     "https://images.unsplash.com/photo-1500937386664-56d1dfef3854?auto=format&fit=crop&q=80&w=1920"
   ];
   
-  const randomStatic = staticImages[Math.floor(Math.random() * staticImages.length)];
-
-  // If the user hasn't selected an API key, we stick to static images to avoid quota issues
-  // unless we are in the 10% lucky group.
-  const hasKey = await (window as any).aistudio?.hasSelectedApiKey?.();
-  
-  if (!hasKey && Math.random() > 0.1) {
-    return randomStatic;
-  }
-
-  const prompt = `Ultra-realistic photography of a wide green farming field in rural India with healthy crops growing in rows. A farmer wearing traditional clothes working in the field. Tall coconut trees and neem trees around the farmland. A small village hut in the background. Blue sky with soft white clouds and warm sunlight spreading across the field. Green crops moving slightly in the wind, birds flying in the sky, a narrow mud path between the fields, water irrigation channel beside the crops, distant hills and village houses. Cinematic look, vibrant green colors, highly detailed, realistic textures.`;
-
-  try {
-    const ai = getAi();
-    const response = await ai.models.generateContent({
-      model: hasKey ? "gemini-3.1-flash-image-preview" : "gemini-2.5-flash-image",
-      contents: [{ text: prompt }],
-      config: {
-        imageConfig: {
-          aspectRatio: "16:9",
-          ...(hasKey ? { imageSize: "1K" } : {})
-        }
-      }
-    });
-
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-  } catch (err) {
-    console.warn("AI Image Generation failed, using fallback:", err);
-  }
-  
-  return randomStatic;
+  return staticImages[Math.floor(Math.random() * staticImages.length)];
 }
 
 export async function getCropRecommendations(
